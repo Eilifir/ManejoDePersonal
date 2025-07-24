@@ -128,6 +128,3 @@ if archivo_excel:
                 file_name="resultado_planificacion.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-                file_name="resultado_planificacion.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
