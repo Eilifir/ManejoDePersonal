@@ -3,8 +3,21 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import io
 
+def calcular_exclusividad(candidatos, procesos, recurso_actual):
+    exclusividades = []
+    for _, persona in candidatos.iterrows():
+        habilidades = str(persona['Habilidades']).split(',')
+        exclusivas = 0
+        for _, proceso in procesos.iterrows():
+            if proceso['Tipo Recurso'] != recurso_actual:
+                if not any(hab in habilidades for hab in str(proceso['Tipo Recurso']).split(',')):
+                    exclusivas += 1
+        exclusividades.append(exclusivas)
+    return exclusividades
+
 def planificar(procesos, personal, restricciones):
     restricciones_dict = dict(zip(restricciones['Restricción'], restricciones['Valor']))
+
     max_procesos = int(restricciones_dict.get('Máximo procesos por persona', 999))
     max_horas = int(restricciones_dict.get('Máximo horas por semana', 999))
     turnos_compatibles = restricciones_dict.get('Requiere turnos compatibles', 'No') == 'Sí'
@@ -20,6 +33,7 @@ def planificar(procesos, personal, restricciones):
 
     for _, proceso in procesos.iterrows():
         candidatos = personal.copy()
+
         candidatos = candidatos[candidatos['Habilidades'].str.contains(proceso['Tipo Recurso'], na=False)]
         candidatos = candidatos[candidatos['Horas restantes'] >= proceso['Duración Estimada (hs)']]
         candidatos = candidatos[candidatos['Procesos asignados'] < max_procesos]
@@ -33,7 +47,10 @@ def planificar(procesos, personal, restricciones):
                 lambda x: any(herr in recursos_en_uso for herr in str(x).split(',')))]
 
         if not candidatos.empty:
-            candidato = candidatos.sort_values(by='Procesos asignados').iloc[0]
+            exclusividades = calcular_exclusividad(candidatos, procesos, proceso['Tipo Recurso'])
+            candidatos = candidatos.assign(Exclusividad=exclusividades)
+            candidato = candidatos.sort_values(by=['Exclusividad', 'Procesos asignados']).iloc[0]
+
             asignaciones.append({
                 'Proceso': proceso['Nombre Proceso'],
                 'Asignado a': candidato['Nombre'],
@@ -108,6 +125,9 @@ if archivo_excel:
             st.download_button(
                 label="Descargar resultados en Excel",
                 data=buffer.getvalue(),
+                file_name="resultado_planificacion.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
                 file_name="resultado_planificacion.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
