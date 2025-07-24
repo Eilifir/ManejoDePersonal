@@ -9,9 +9,9 @@ def calcular_exclusividad(candidatos, procesos, recurso_actual):
         habilidades = str(persona['Habilidades']).split(',')
         exclusivas = 0
         for _, proceso in procesos.iterrows():
-            if proceso['Tipo Recurso'] != recurso_actual:
-                if not any(hab in habilidades for hab in str(proceso['Tipo Recurso']).split(',')):
-                    exclusivas += 1
+            recursos_proceso = str(proceso['Tipo Recurso']).split(',')
+            if not any(r in habilidades for r in recursos_proceso):
+                exclusivas += 1
         exclusividades.append(exclusivas)
     return exclusividades
 
@@ -33,8 +33,12 @@ def planificar(procesos, personal, restricciones):
 
     for _, proceso in procesos.iterrows():
         candidatos = personal.copy()
+        recursos_requeridos = str(proceso['Tipo Recurso']).split(',')
 
-        candidatos = candidatos[candidatos['Habilidades'].str.contains(proceso['Tipo Recurso'], na=False)]
+        # FILTRAR candidatos con al menos una habilidad coincidente (OR)
+        candidatos = candidatos[candidatos['Habilidades'].apply(
+            lambda h: any(r in str(h).split(',') for r in recursos_requeridos))]
+
         candidatos = candidatos[candidatos['Horas restantes'] >= proceso['Duración Estimada (hs)']]
         candidatos = candidatos[candidatos['Procesos asignados'] < max_procesos]
 
